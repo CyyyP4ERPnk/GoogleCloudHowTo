@@ -1,0 +1,37 @@
+#############################################################
+#			Creating a Virtual Machine	    #	
+#############################################################
+
+
+#This is a demonstration of how to create a new virtual machine instance from the command line
+
+gcloud compute instances create <paste VM instance name> --machine-type <paste VM machine-type> --zone <paste VM zone>
+
+#ex: gcloud compute instances create gcelab2 --machine-type n1-standard-2 --zone us-central1-f
+
+
+
+
+#To see all the defaults for a virtual machine instance run the following
+
+gcloud compute instances create --help
+
+#To exit help, press CTRL + C.
+
+
+
+
+#You can set the default region and zones that gcloud uses if you are always working within one region/zone and you don't want to append the --zone flag every time. 
+#To do this, run these commands
+
+gcloud config set compute/zone ...
+gcloud config set compute/region ...
+
+
+
+#You can also use SSH to connect to your instance via gcloud. Make sure to add your zone, or omit the --zone flag if you've set the option globally.
+
+gcloud compute ssh <paste VM instance name> --zone <paste VM zone>
+
+ex: gcloud compute ssh gcelab2 --zone us-central1-f
+

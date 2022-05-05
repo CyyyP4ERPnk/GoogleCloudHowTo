@@ -1,0 +1,226 @@
+#####################################################
+#			Multiple VPC Networks	    #	
+#####################################################
+
+
+#Create custom mode VPC networks with firewall rules
+#Create two custom networks managementnet and privatenet, along with firewall rules to allow SSH, ICMP, and RDP ingress traffic.
+
+
+gcloud compute networks create managementnet --project=qwiklabs-gcp-xx-xxxxxxxxxxxx --subnet-mode=custom --mtu=1460 --bgp-routing-mode=regional
+#gcloud compute networks create NAME --project=qwiklabs-gcp-xx-xxxxxxxxxxxx --subnet-mode=custom --mtu=1460 --bgp-routing-mode=regional
+
+gcloud compute networks create privatenet --project=qwiklabs-gcp-xx-xxxxxxxxxxxx --subnet-mode=custom --mtu=1460 --bgp-routing-mode=regional
+#gcloud compute networks create NAME --project=qwiklabs-gcp-xx-xxxxxxxxxxxx --subnet-mode=custom --mtu=1460 --bgp-routing-mode=regional
+
+
+gcloud compute networks subnets create managementnetsubnet -project=qwiklabs-gcp-xx-xxxxxxxxxxxx --range=x.x.x.x./x --network=NAME --region=us-east1
+#gcloud compute networks subnets create NAME -project=qwiklabs-gcp-xx-xxxxxxxxxxxx --range=x.x.x.x./x --network=NAME --region=us-east1
+
+gcloud compute networks subnets create privatenetsubnet -project=qwiklabs-gcp-xx-xxxxxxxxxxxx --range=x.x.x.x./x --network=NAME --region=us-east1
+#gcloud compute networks subnets create NAME -project=qwiklabs-gcp-xx-xxxxxxxxxxxx --range=x.x.x.x./x --network=NAME --region=us-east1
+
+
+#Run the following command to list the available VPC networks:
+
+gcloud compute networks list
+
+
+#Run the following command to list the available VPC subnets (sorted by VPC network):
+
+gcloud compute networks subnets list --sort-by=NETWORK
+
+#Create the firewall rules for managementnet ************************** REVISIT TO GET COMMAND LINE EQUIVALENT
+
+
+#Create the firewall rules for privatenet network using the Cloud Shell command line.
+#In Cloud Shell, run the following command to create the privatenet-allow-icmp-ssh-rdp firewall rule:
+
+gcloud compute firewall-rules create privatenet-allow-icmp-ssh-rdp --direction=INGRESS --priority=1000 --network=privatenet --action=ALLOW --rules=icmp,tcp:22,tcp:3389 --source-ranges=0.0.0.0/0
+
+
+#Run the following command to list all the firewall rules (sorted by VPC network):
+
+gcloud compute firewall-rules list --sort-by=NETWORK
+
+
+#The firewall rules for mynetwork network have been created for you. 
+#You can define multiple protocols and ports in one firewall rule (privatenet and managementnet), or spread them across multiple rules (default and mynetwork).
+#In the Cloud Console, navigate to Navigation menu > VPC network > Firewall.
+#You see that the same firewall rules are listed in the Cloud Console.
+
+#Create the managementnet-us-vm instance using the Cloud Console
+
+gcloud compute instances create managementnet-us-vm --zone=us-central1-f --machine-type=n1-standard-1 --subnet=managementnet-us
+
+
+#Create the privatenet-us-vm instance using the Cloud Shell command line.
+
+gcloud compute instances create privatenet-us-vm --zone=us-central1-f --machine-type=n1-standard-1 --subnet=privatesubnet-us
+
+
+#Run the following command to list all the VM instances (sorted by zone):
+
+gcloud compute instances list --sort-by=ZONE
+
+
+#Ping the external IP addresses of the VM instances to determine if you can reach the instances from the public internet.
+1.	In the Cloud Console, navigate to Navigation menu > Compute Engine > VM instances.
+2.	Note the external IP addresses for mynet-eu-vm, managementnet-us-vm, and privatenet-us-vm.
+3.	For mynet-us-vm, click SSH to launch a terminal and connect.
+4.	To test connectivity to mynet-eu-vm's external IP, run the following command, replacing mynet-eu-vm's external IP:
+
+ping -c 3 <Enter mynet-eu-vm's external IP here>
+
+
+#This should work!
+
+#To test connectivity to managementnet-us-vm's external IP, run the following command, replacing managementnet-us-vm's external IP:
+ping -c 3 <Enter managementnet-us-vm's external IP here>
+
+
+#This should work!
+#To test connectivity to privatenet-us-vm's external IP, run the following command, replacing privatenet-us-vm's external IP:
+
+ping -c 3 <Enter privatenet-us-vm's external IP here>
+
+
+#This should work!
+#You are able to ping the external IP address of all VM instances, even though they are either in a different zone or VPC network. 
+#This confirms public access to those instances is only controlled by the ICMP firewall rules that you established earlier.
+
+
+#Ping the internal IP addresses of the VM instances to determine if you can reach the instances from within a VPC network.
+1.	In the Cloud Console, navigate to Navigation menu > Compute Engine > VM instances.
+2.	Note the internal IP addresses for mynet-eu-vm, managementnet-us-vm, and privatenet-us-vm.
+3.	Return to the SSH terminal for mynet-us-vm.
+4.	To test connectivity to mynet-eu-vm's internal IP, run the following command, replacing mynet-eu-vm's internal IP:
+
+ping -c 3 <Enter mynet-eu-vm's internal IP here>
+
+
+#You are able to ping the internal IP address of mynet-eu-vm because it is on the same VPC network as the source of the ping (mynet-us-vm), even though both VM instances are in separate zones, regions and continents!
+#To test connectivity to managementnet-us-vm's internal IP, run the following command, replacing managementnet-us-vm's internal IP:
+
+ping -c 3 <Enter managementnet-us-vm's internal IP here>
+
+
+#This should not work as indicated by a 100% packet loss!
+#To test connectivity to privatenet-us-vm's internal IP, run the following command, replacing privatenet-us-vm's internal IP:
+
+ping -c 3 <Enter privatenet-us-vm's internal IP here>
+
+
+#This should not work either as indicated by a 100% packet loss! 
+#You are unable to ping the internal IP address of managementnet-us-vm and privatenet-us-vm because they are in separate VPC networks from the source of the ping (mynet-us-vm), even though they are all in the same zone us-central1.
+#VPC networks are by default isolated private networking domains. However, no internal IP address communication is allowed between networks, unless you set up mechanisms such as VPC peering or VPN.
+
+#Every instance in a VPC network has a default network interface. You can create additional network interfaces attached to your VMs. 
+#Multiple network interfaces enable you to create configurations in which an instance connects directly to several VPC networks (up to 8 interfaces, depending on the instance's type).
+
+
+#Create the vm-appliance instance with network interfaces in privatesubnet-us, managementsubnet-us and mynetwork. 
+#The CIDR ranges of these subnets do not overlap, which is a requirement for creating a VM with multiple network interface controllers (NICs).
+
+1.	In the Cloud Console, navigate to Navigation menu > Compute Engine > VM instances.
+2.	Click Create instance.
+3.	Set the following values, leave all other values at their defaults:
+Property	Value (type value or select option as specified)
+Name	vm-appliance
+Region	us-central1
+Zone	us-central1-f
+Series	N1
+Machine type	4 vCPUs (n1-standard-4)
+
+#The number of interfaces allowed in an instance is dependent on the instance's machine type and the number of vCPUs. 
+#The n1-standard-4 allows up to 4 network interfaces. Refer here for more information.
+
+1.	Click NETWORKING, DISKS, SECURITY, MANAGEMENT, SOLE-TENANCY.
+2.	Click Networking.
+3.	For Network interfaces, click the dropdown to edit.
+
+4.	Set the following values, leave all other values at their defaults:
+Property	Value (type value or select option as specified)
+Network	privatenet
+Subnetwork	privatesubnet-us
+
+5.	Click Done.
+6.	Click Add network interface.
+
+7.	Set the following values, leave all other values at their defaults:
+Property	Value (type value or select option as specified)
+Network	managementnet
+Subnetwork	managementsubnet-us
+
+8.	Click Done.
+9.	Click Add network interface.
+
+10.	Set the following values, leave all other values at their defaults:
+Property	Value (type value or select option as specified)
+Network	mynetwork
+Subnetwork	mynetwork
+
+11.	Click Done.
+12.	Click Create.
+
+#Explore the network interface details of vm-appliance within the Cloud Console and within the VM's terminal.
+
+1.	In the Cloud Console, navigate to Navigation menu ( ) > Compute Engine > VM instances.
+2.	Click nic0 within the Internal IP address of vm-appliance to open the Network interface details page.
+3.	Verify that nic0 is attached to privatesubnet-us, is assigned an internal IP address within that subnet (172.16.0.0/24), and has applicable firewall rules.
+4.	Click nic0 and select nic1.
+5.	Verify that nic1 is attached to managementsubnet-us, is assigned an internal IP address within that subnet (10.130.0.0/20), and has applicable firewall rules.
+6.	Click nic1 and select nic2.
+7.	Verify that nic2 is attached to mynetwork, is assigned an internal IP address within that subnet (10.128.0.0/20), and has applicable firewall rules.
+Each network interface has its own internal IP address so that the VM instance can communicate with those networks.
+1.	In the Cloud Console, navigate to Navigation menu > Compute Engine > VM instances.
+2.	For vm-appliance, click SSH to launch a terminal and connect.
+3.	Run the following, to list the network interfaces within the VM instance:
+
+sudo ifconfig
+
+#Demonstrate that the vm-appliance instance is connected to privatesubnet-us, managementsubnet-us and mynetwork by pinging VM instances on those subnets.
+1.	In the Cloud Console, navigate to Navigation menu > Compute Engine > VM instances.
+2.	Note the internal IP addresses for privatenet-us-vm, managementnet-us-vm, mynet-us-vm, and mynet-eu-vm.
+3.	Return to the SSH terminal for vm-appliance.
+4.	To test connectivity to privatenet-us-vm's internal IP, run the following command, replacing privatenet-us-vm's internal IP:
+
+ping -c 3 <Enter privatenet-us-vm's internal IP here>
+
+
+#This works!
+1.	Repeat the same test by running the following:
+
+ping -c 3 privatenet-us-vm
+
+
+#You are able to ping privatenet-us-vm by its name because VPC networks have an internal DNS service that allows you to address instances by their DNS names rather than their internal IP addresses. When an internal DNS query is made with the instance hostname, it resolves to the primary interface (nic0) of the instance. 
+#Therefore, this only works for privatenet-us-vm in this case.
+
+1.	To test connectivity to managementnet-us-vm's internal IP, run the following command, replacing managementnet-us-vm's internal IP:
+
+ping -c 3 <Enter managementnet-us-vm's internal IP here>
+
+
+#This works!
+
+1.	To test connectivity to mynet-us-vm's internal IP, run the following command, replacing mynet-us-vm's internal IP:
+
+ping -c 3 <Enter mynet-us-vm's internal IP here>
+
+
+#This works!
+
+1.	To test connectivity to mynet-eu-vm's internal IP, run the following command, replacing mynet-eu-vm's internal IP:
+ping -c 3 <Enter mynet-eu-vm's internal IP here>
+
+
+#This does not work! In a multiple interface instance, every interface gets a route for the subnet that it is in. In addition, the instance gets a single default route that is associated with the primary interface eth0. 
+#Unless manually configured otherwise, any traffic leaving an instance for any destination other than a directly connected subnet will leave the instance via the default route on eth0.
+
+1.	To list the routes for vm-appliance instance, run the following command:
+
+ip route
+
+#The primary interface eth0 gets the default route (default via 172.16.0.1 dev eth0), and all three interfaces eth0, eth1 and eth2 get routes for their respective subnets. 
+#Since, the subnet of mynet-eu-vm (10.132.0.0/20) is not included in this routing table, the ping to that instance leaves vm-appliance on eth0 (which is on a different VPC network). 

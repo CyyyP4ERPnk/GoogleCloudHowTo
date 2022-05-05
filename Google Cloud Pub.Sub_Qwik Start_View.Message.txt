@@ -1,0 +1,43 @@
+#############################################################################
+#			Google Cloud Pub.Sub_ Qwik Start - Console	    #	
+#############################################################################
+
+
+#You can use the Google Cloud Shell console to perform operations in Google Cloud Pub/Sub.
+
+#To use a Pub/Sub, you create a topic to hold data and a subscription to access data .published to the topic.
+
+1.	Click Navigation menu > Pub/Sub > Topics
+
+2.	The topic must have a unique name. For this lab, name your topic MyTopic. In the Create a topic dialog:
+•	For Topic ID, type MyTopic.
+•	Leave Encryption at the default value.
+•	Click CREATE TOPIC.
+
+#Now you'll make a subscription to access the topic.
+
+1.	Click Topics in the left panel to return to the Topics page. For the topic you just made click the three dot icon > Create subscription
+
+2.	In the Add subscription to topic dialog:
+•	Type a name for the subscription, such as MySub
+•	Set the Delivery Type to Pull.
+•	Leave all other options at the default values.
+•	Click Create.
+Your subscription is listed in the Subscription list.
+
+#Publish a message to the topic
+
+1.	At the bottom of the Topics details page, click MESSAGES tab and then click PUBLISH MESSAGE.
+2.	Enter Hello World in the Message field and click Publish.
+
+
+#Viewing a Pub/Sub Message
+
+#To view the message you'll use the subscription (MySub) to pull the message (Hello World) from the topic (MyTopic).
+#Enter the following command in command line.
+
+
+gcloud pubsub subscriptions pull --auto-ack MySub
+
+#The message appears in the DATA field of the command output.
+#You created a Pub/Sub topic, published to the topic, created a subscription, then used the subscription to pull data from the topic.
